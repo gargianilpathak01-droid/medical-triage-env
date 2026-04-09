@@ -48,3 +48,19 @@ def run_episode(task: str = "easy"):
             action = call_llm(obs)
         except Exception as e:
             print(f"[STEP] step={step} error={e}")
+            action = {"urgency": "normal", "department": "GP"}
+
+        res = requests.post(f"{ENV_URL}/step", json=action)
+        result = res.json()
+
+        reward = result.get("reward", 0)
+        done = result.get("done", True)
+        total_reward += reward
+
+        print(f"[STEP] step={step} action={json.dumps(action)} reward={reward} done={done}")
+        obs = result.get("observation", obs)
+
+    print(f"[END] total_reward={total_reward} steps={step}")
+
+if __name__ == "__main__":
+    run_episode(task="easy")
