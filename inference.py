@@ -32,11 +32,11 @@ Respond ONLY with this JSON format:
     return json.loads(text)
 
 def run_episode(task: str = "easy"):
-    print(f"[START] task={task} model={MODEL_NAME}")
+    print(f"[START] task={task} model={MODEL_NAME}", flush=True)
 
     res = requests.post(f"{ENV_URL}/reset", params={"task": task})
     obs = res.json()
-    print(f"[START] episode_reset patient_id={obs.get('patient_id')} step=0")
+    print(f"[START] episode_reset patient_id={obs.get('patient_id')} step=0", flush=True)
 
     done = False
     step = 0
@@ -47,20 +47,30 @@ def run_episode(task: str = "easy"):
         try:
             action = call_llm(obs)
         except Exception as e:
-            print(f"[STEP] step={step} error={e}")
-            action = {"urgency": "normal", "department": "GP"}
+            print(f"[STEP] step={step} error={e}", flush=True)
+            action = {"urgency": "urgent", "department": "ER"}
+
+        print(f"[STEP] step={step} patient_id={obs.get('patient_id')} urgency={action.get('urgency')} department={action.get('department')}", flush=True)
 
         res = requests.post(f"{ENV_URL}/step", json=action)
         result = res.json()
 
-        reward = result.get("reward", 0)
-        done = result.get("done", True)
+        reward = result.get("reward", {}).get("value", 0.5)
+        reason = result.get("reward", {}).get("reason", "")
         total_reward += reward
+        done = result.get("done", True)
+        obs = result.get("observation", {})
 
-        print(f"[STEP] step={step} action={json.dumps(action)} reward={reward} done={done}")
-        obs = result.get("observation", obs)
+        print(f"[STEP] step={step} reward={reward} reason={reason} done={done}", flush=True)
 
-    print(f"[END] total_reward={total_reward} steps={step}")
+    state_res = requests.get(f"{ENV_URL}/state")
+    state = state_res.json()
+    avg_score = state.get("avg_score", round(total_reward / step, 2) if step > 0 else 0.5)
+
+    normalized = max(0.01, min(0.99, round(total_reward / step, 2) if step > 0 else 0.5))
+    print(f"[END] task={task} steps={step} total_reward={normalized} avg_score={avg_score}", flush=True)
+    return normalized
 
 if __name__ == "__main__":
-    run_episode(task="easy")
+    for task in ["easy", "medium", "hard"]:
+        run_episode(task)
