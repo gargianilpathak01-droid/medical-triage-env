@@ -151,11 +151,13 @@ class MedicalTriageEnv:
         return obs, TriageReward(value=reward, reason=reason), done, {}
 
     def state(self):
+        avg = round(self.score / self.step_count, 2) if self.step_count > 0 else 0.5
+        normalized_score = max(0.01, min(0.99, round(self.score / self.max_steps, 2)))
         return {
             "task": self.task,
             "step": self.step_count,
-            "score": round(self.score, 2),
+            "score": normalized_score,
             "max_steps": self.max_steps,
-            "avg_score": round(self.score / self.step_count, 2) if self.step_count > 0 else 0.5,
+            "avg_score": max(0.01, min(0.99, avg)),
             "current_patient_id": self.current_patient["id"] if self.current_patient else None
         }
