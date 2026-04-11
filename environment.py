@@ -37,10 +37,8 @@ HARD_PATIENTS = [
     {"id": "h8", "age": 25, "symptoms": "Severe fatigue, joint pain, facial rash after sun exposure", "vitals": "BP: 128/82, HR: 88, O2: 98%", "urgency": "urgent", "department": "ER", "hint": "lupus flare - autoimmune, easy to miss in young"},
 ]
 
-# Urgency severity mapping for partial credit
 URGENCY_SEVERITY = {"critical": 4, "urgent": 3, "normal": 2, "low": 1}
 
-# Department similarity mapping for partial credit
 DEPARTMENT_GROUPS = {
     "ER": ["ER", "cardiology", "neurology"],
     "cardiology": ["cardiology", "ER"],
@@ -93,19 +91,15 @@ class MedicalTriageEnv:
         urgency_correct = action.urgency == correct_urgency
         dept_correct = action.department == correct_dept
 
-        # Perfect score
         if urgency_correct and dept_correct:
-            # Bonus for critical patients correctly identified early
             if correct_urgency == "critical" and self.step_count <= 2:
-                reward = 1.0
+                reward = 0.95
                 reason = "Perfect triage! Critical patient correctly identified early."
             else:
-                reward = 1.0
+                reward = 0.95
                 reason = "Perfect triage! Correct urgency and department."
 
-        # Partial: both wrong but urgency is close
         elif urgency_correct and not dept_correct:
-            # Check if department is in related group
             related = DEPARTMENT_GROUPS.get(correct_dept, [correct_dept])
             if action.department in related:
                 reward = 0.6
@@ -115,7 +109,6 @@ class MedicalTriageEnv:
                 reason = f"Correct urgency but wrong department. Should be {correct_dept}."
 
         elif not urgency_correct and dept_correct:
-            # Penalize more if urgency is dangerously wrong (e.g. critical marked as low)
             correct_severity = URGENCY_SEVERITY[correct_urgency]
             given_severity = URGENCY_SEVERITY.get(action.urgency, 0)
             severity_diff = abs(correct_severity - given_severity)
@@ -130,7 +123,6 @@ class MedicalTriageEnv:
                 reason = f"Correct department but urgency slightly off. Should be {correct_urgency}."
 
         else:
-            # Both wrong - check how wrong
             correct_severity = URGENCY_SEVERITY[correct_urgency]
             given_severity = URGENCY_SEVERITY.get(action.urgency, 0)
             severity_diff = abs(correct_severity - given_severity)
@@ -140,7 +132,7 @@ class MedicalTriageEnv:
                 reward = 0.3
                 reason = "Close but both slightly off."
             elif severity_diff >= 3:
-                reward = 0.0
+                reward = 0.05
                 reason = f"Dangerous misclassification! Should be {correct_urgency} → {correct_dept}."
             else:
                 reward = 0.1
@@ -164,6 +156,6 @@ class MedicalTriageEnv:
             "step": self.step_count,
             "score": round(self.score, 2),
             "max_steps": self.max_steps,
-            "avg_score": round(self.score / self.step_count, 2) if self.step_count > 0 else 0.0,
+            "avg_score": round(self.score / self.step_count, 2) if self.step_count > 0 else 0.5,
             "current_patient_id": self.current_patient["id"] if self.current_patient else None
         }
