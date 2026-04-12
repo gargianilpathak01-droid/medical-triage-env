@@ -68,7 +68,8 @@ def run_episode(task: str = "easy"):
     avg_score = state.get("avg_score", round(total_reward / step, 2) if step > 0 else 0.5)
 
     normalized = max(0.01, min(0.99, round(total_reward / step, 2) if step > 0 else 0.5))
-    print(f"[END] task={task} steps={step} total_reward={normalized} avg_score={avg_score}", flush=True)
+    avg_normalized = max(0.01, min(0.99, avg_score)) if isinstance(avg_score, float) else 0.5
+    print(f"[END] task={task} steps={step} score={normalized} avg_score={avg_normalized}", flush=True)
     return normalized
 
 if __name__ == "__main__":
