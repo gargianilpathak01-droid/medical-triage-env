@@ -37,5 +37,12 @@ def step(action: TriageAction):
 def state():
     env = envs.get("default")
     if not env:
-        return {"error": "Call /reset first"}
+        return {
+            "task": "easy",
+            "step": 0,
+            "score": 0.5,
+            "max_steps": 5,
+            "avg_score": 0.5,
+            "current_patient_id": None
+        }
     return env.state()
